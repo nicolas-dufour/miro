@@ -370,11 +370,11 @@ can override individual axes to bias generation toward a particular trade-off:
 
 ```python
 image = pipe(
-    "a chest x-ray showing pneumonia",
+    prompt,                       # the rusty-robot prompt from above
     reward_targets={{
         "clip_score": 1.0,        # strict prompt alignment
         "aesthetic_score": 0.3,   # de-prioritise prettiness
-        "sciscore_score": 1.0,    # prioritise scientific accuracy
+        "image_reward_score": 1.0,  # prioritise general human preference
         # any reward not listed defaults to 1.0
     }},
     negative_reward_targets={{

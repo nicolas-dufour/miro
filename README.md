@@ -71,8 +71,10 @@ for i, img in enumerate(images):
 Loading an ablation:
 
 ```python
-pipe = MiroPipeline.from_pretrained("nicolas-dufour/miro-ablations", variant="no_clip")
+pipe = MiroPipeline.from_pretrained("nicolas-dufour/miro-ablations", variant="miro-no-clip")
 ```
+
+(See [Available models](#available-models) for the full list of `variant` names.)
 
 ## Available models
 
@@ -107,11 +109,11 @@ MIRO's flow model takes a vector of seven reward targets in addition to the text
 
 ```python
 images = pipe(
-    "a chest x-ray showing pneumonia",
+    prompt,                         # the rusty-robot prompt from above
     reward_targets={
         "clip_score": 1.0,          # strict prompt alignment
         "aesthetic_score": 0.3,     # de-prioritise prettiness
-        "sciscore_score": 1.0,      # prioritise scientific accuracy
+        "image_reward_score": 1.0,  # prioritise general human preference
         # any reward not specified defaults to 1.0
     },
     negative_reward_targets={
