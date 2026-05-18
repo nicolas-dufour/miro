@@ -1,15 +1,21 @@
 [project]
 name = "miro-t2i"
-version = "0.1.0"
+version = "0.1.1"
 description = "MIRO: Multi-reward conditioned pretraining for text-to-image diffusion (ICML 2026)"
 readme = "README.md"
 license = { text = "MIT" }
+# All five co-authors land in the ``Author`` metadata field (no per-entry
+# email, otherwise PEP 621 splits them across Author and Author-email).
+# Maintainer-email below carries the single contact address.
 authors = [
-    { name = "Nicolas Dufour", email = "nicolas.dufour@kyutai.org" },
+    { name = "Nicolas Dufour" },
     { name = "Lucas Degeorge" },
     { name = "Arijit Ghosh" },
     { name = "Vicky Kalogeiton" },
     { name = "David Picard" },
+]
+maintainers = [
+    { name = "Nicolas Dufour", email = "nicolas.dufour@kyutai.org" },
 ]
 requires-python = ">=3.10"
 keywords = ["diffusion", "text-to-image", "flow-matching", "rin", "miro"]
