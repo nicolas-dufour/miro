@@ -1,0 +1,45 @@
+# @package _global_
+
+data:
+  train_instance:
+    num_bins: 64
+    bin_coherence: true
+
+model:
+  coherence_values:
+    hpsv2_score_coherence: 1.0
+  uncoherence_values:
+    hpsv2_score_uncoherence: 0.0
+  coherence_keys:
+    - "hpsv2_score_coherence"
+  network:
+    coherence_keys:
+      - "hpsv2_score"
+    instance:
+      data_dim: 512
+      num_latents: 256
+      latents_dim: 1024
+      num_processing_layers: 4
+      num_blocks: 4
+      patch_size: 2
+      read_write_heads: 16
+      compute_heads: 32
+      data_mlp_multiplier: 4
+      compute_dropout: 0
+      rw_stochastic_depth: 0
+      compute_stochastic_depth: 0
+
+  optimizer:
+    optim:
+      lr: 1e-3
+      weight_decay: 0.01
+    exclude_ln_and_biases_from_weight_decay: true
+  lr_scheduler:
+    warmup_steps: 5000
+    rate: 0.8
+
+  loss:
+    cond_drop_rate: 0.0
+
+  cond_preprocessing:
+    drop_labels: false

@@ -1,0 +1,98 @@
+[workspace]
+name = "miro-geneval"
+description = "GenEval evaluation for Miro diffusion models"
+authors = ["Nicolas Dufour"]
+channels = ["conda-forge", "nvidia"]
+platforms = ["linux-64"]
+
+# Driver 535+ supports CUDA 12.x forward; the conda-side toolkit pulls 12.1 binaries.
+[system-requirements]
+cuda = "12.0"
+
+# --- Conda-side: CUDA toolkit + Python -------------------------------------
+# We need the full CUDA toolkit (nvcc + dev headers + libs) so mmcv 2.x can
+# build its C++/CUDA extensions from source with H100 (sm_90) support. The
+# pre-built mmcv wheels on PyPI / openmmlab CDN only ship up to sm_89.
+[dependencies]
+python = "3.10.*"
+cuda-version = "12.1.*"
+cuda-nvcc = "*"
+cuda-cudart-dev = "*"
+cuda-cccl = "*"
+libcusparse-dev = "*"
+libcublas-dev = "*"
+libcurand-dev = "*"
+libcufft-dev = "*"
+cuda-libraries-dev = "*"
+cuda-driver-dev = "*"
+gcc_linux-64 = "*"
+gxx_linux-64 = "*"
+# Build helpers (so we don't fall back to slow distutils)
+ninja = "*"
+pkg-config = "*"
+# setuptools/wheel/pip from conda so they're available before pypi build runs.
+# Pin setuptools<70 because mmcv 2.1.0's setup.py imports pkg_resources which
+# setuptools 70 moved out into a separate package.
+setuptools = "<70"
+wheel = "*"
+pip = "*"
+
+# CUDA_HOME has to point at the conda prefix so torch's cpp_extension and mmcv
+# setup.py find nvcc + headers. Force sm_90 build for H100.
+[activation.env]
+CUDA_HOME = "$CONDA_PREFIX"
+LD_LIBRARY_PATH = "$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
+TORCH_CUDA_ARCH_LIST = "9.0"
+FORCE_CUDA = "1"
+MAX_JOBS = "8"
+
+# --- PyPI-side: torch + mmcv (source build) + mmdet + helpers --------------
+# torch 2.4.0+cu121 is the latest version with both a working PyTorch wheel
+# and a pre-built mmcv pre-built ABI (we still rebuild from source for sm_90).
+[pypi-dependencies]
+miro-geneval = { path = ".", editable = true }
+torch = { version = "==2.4.0", index = "https://download.pytorch.org/whl/cu121" }
+torchvision = { version = "==0.19.0", index = "https://download.pytorch.org/whl/cu121" }
+numpy = "<2"
+pandas = "*"
+pillow = "*"
+open-clip-torch = "==2.26.1"
+clip-benchmark = ">=1.4"
+mmengine = "*"
+"mmdet" = ">=3.0,<3.4"
+pycocotools = "*"
+networkx = "==2.8.8"
+openmim = "*"
+transformers = "<4.43"
+# mmcv builds from source against CUDA from conda.
+# no-build-isolation (declared below) lets the build see torch and CUDA_HOME.
+mmcv = "==2.1.0"
+
+[pypi-options]
+# mmcv 2.1.0 has no pre-built wheel for sm_90; we rebuild from source. The
+# build needs torch (already installed) so use the resolved env, not an
+# isolated PEP 517 build venv.
+no-build-isolation = ["mmcv"]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu121" }]
+torchvision = [{ index = "pytorch-cu121" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+# --- Tasks -----------------------------------------------------------------
+[tasks]
+# One-shot: download Mask2Former weights into ./models/ and patch them so the
+# mmdet 3.x layer names match (Mask2Former's old `attentions[0]` is cross-attn,
+# `attentions[1]` is self-attn, opposite of what one would naively guess).
+# Idempotent: skips download/patch if the backup (original) already exists.
+setup-models = { cmd = "bash -c '[ -f models/mask2former_swin-s-p4-w7-224_lsj_8x2_50e_coco_original.pth ] || (bash download_models.sh ./models/ && python patch_mask2former_checkpoint.py ./models/mask2former_swin-s-p4-w7-224_lsj_8x2_50e_coco.pth)'" }
+
+# Evaluate a directory of generated images
+evaluate = "python evaluate_images.py"
+
+# Summary of results.jsonl
+summary = "python summary_scores.py"

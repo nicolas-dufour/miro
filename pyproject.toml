@@ -1,0 +1,121 @@
+[project]
+name = "miro-t2i"
+version = "0.1.0"
+description = "MIRO: Multi-reward conditioned pretraining for text-to-image diffusion (ICML 2026)"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Nicolas Dufour", email = "nicolas.dufour@kyutai.org" },
+    { name = "Lucas Degeorge" },
+    { name = "Arijit Ghosh" },
+    { name = "Vicky Kalogeiton" },
+    { name = "David Picard" },
+]
+requires-python = ">=3.10"
+keywords = ["diffusion", "text-to-image", "flow-matching", "rin", "miro"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.1",
+    "torchvision",
+    "transformers>=4.40",
+    "diffusers>=0.27",
+    "huggingface_hub>=0.23",
+    "safetensors>=0.4",
+    "einops",
+    "numpy",
+    "pillow",
+    "omegaconf",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+train = [
+    "lightning>=2.2",
+    "wandb",
+    "webdataset",
+    "wids",
+    "hydra-core",
+    "timm",
+    "pandas",
+    "scikit-learn",
+]
+dev = [
+    "pytest>=7",
+]
+
+[project.urls]
+Homepage   = "https://nicolas-dufour.github.io/miro/"
+Repository = "https://github.com/nicolas-dufour/miro"
+Paper      = "https://arxiv.org/abs/2510.25897"
+Issues     = "https://github.com/nicolas-dufour/miro/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Flat layout: package source lives at the repo root next to pyproject.toml.
+# Hatchling explicitly maps each top-level source file/dir into ``miro/`` in
+# the wheel so ``import miro`` works; training-only artefacts (data/, slurm/,
+# callbacks/, eval/, …) are simply not listed and therefore excluded.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+# Runtime wheel intentionally excludes ``utils/rewards/*`` — those backbones
+# only run during dataset preprocessing and pull heavy deps (clip, hpsv2,
+# fairscale, image-reward). They remain in the sdist so ``uv sync --extra
+# train`` clones still have them.
+[tool.hatch.build.targets.wheel.force-include]
+"__init__.py" = "miro/__init__.py"
+"pipeline.py" = "miro/pipeline.py"
+"models" = "miro/models"
+"utils/__init__.py" = "miro/utils/__init__.py"
+"utils/assets.py" = "miro/utils/assets.py"
+"utils/image_processing.py" = "miro/utils/image_processing.py"
+"utils/lr_scheduler.py" = "miro/utils/lr_scheduler.py"
+"utils/misc.py" = "miro/utils/misc.py"
+"utils/optimizers.py" = "miro/utils/optimizers.py"
+"assets/flan_t5_xl_uncond.npy" = "miro/assets/flan_t5_xl_uncond.npy"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "__init__.py",
+    "pipeline.py",
+    "models/**/*.py",
+    "utils/**/*.py",
+    "assets/flan_t5_xl_uncond.npy",
+    "configs/**",
+    "scripts/**.py",
+    "tests/**.py",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+exclude = [
+    "callbacks/**",
+    "checkpoints*/**",
+    "data/**",
+    "datasets/**",
+    "eval/**",
+    "slurm/**",
+    "train.py",
+    "test_equivalence.py",
+    ".venv/**",
+    "dist/**",
+    "wandb/**",
+    "**/__pycache__/**",
+    "*.ckpt",
+    "uv.lock",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

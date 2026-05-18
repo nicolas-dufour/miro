@@ -1,0 +1,325 @@
+defaults:
+  - _self_
+  - experiment: ???
+
+# ============================================================
+# Trainer
+# ============================================================
+trainer:
+  _target_: pytorch_lightning.Trainer
+  max_steps: 500000
+  val_check_interval: 5000
+  check_val_every_n_epoch: null
+  devices: ${computer.devices}
+  accelerator: ${computer.accelerator}
+  strategy:
+    _target_: pytorch_lightning.strategies.ddp.DDPStrategy
+    process_group_backend: nccl
+    find_unused_parameters: false
+    gradient_as_bucket_view: true
+    static_graph: true
+    bucket_cap_mb: 200
+  log_every_n_steps: 10
+  num_nodes: ${computer.num_nodes}
+  precision: ${computer.precision}
+  gradient_clip_val: 2.0
+
+# ============================================================
+# Computer (override via +computer=xxx or inline)
+# ============================================================
+computer:
+  devices: 1
+  num_nodes: 1
+  accelerator: gpu
+  precision: 16-mixed
+  num_workers: 16
+  progress_bar_refresh_rate: 1
+  prefetch_factor: 4
+
+# ============================================================
+# Logger
+# ============================================================
+logger:
+  _target_: pytorch_lightning.loggers.WandbLogger
+  save_dir: ${root_dir}
+  name: ${experiment_name}_train
+  project: ${oc.env:WANDB_PROJECT,miro}
+  entity: ${oc.env:WANDB_ENTITY,null}
+  group: ${experiment_name}
+  log_model: False
+  offline: False
+  mode: online
+
+progress_bar:
+  _target_: pytorch_lightning.callbacks.TQDMProgressBar
+  refresh_rate: ${computer.progress_bar_refresh_rate}
+
+# ============================================================
+# Paths
+# ============================================================
+data_dir: ${root_dir}/datasets
+root_dir: ${hydra:runtime.cwd}
+experiment_name_suffix: base
+experiment_name: ${data.name}_${model.name}_${experiment_name_suffix}
+
+# ============================================================
+# Checkpoints
+# ============================================================
+checkpoints:
+  _target_: pytorch_lightning.callbacks.ModelCheckpoint
+  dirpath: ${root_dir}/miro/checkpoints/${experiment_name}
+  every_n_train_steps: 25000
+  save_last: true
+  save_top_k: -1
+
+# ============================================================
+# Data
+# ============================================================
+data:
+  name: CC12M_LAION_Aesthetics6_256_LDM
+  type: text_conditional
+  img_resolution: 256
+  data_resolution: 32
+  label_dim: 2048
+  num_cond_tokens: 77
+  full_batch_size: 1024
+  in_channels: 4
+  out_channels: 4
+  val_dataset_name: cc12m/val
+  synthetic_embedding_prob: 0.0
+
+  train_instance:
+    _partial_: true
+    _target_: miro.data.text_wids_dataset.TextWIDSDataset
+    root: ${data_dir}/cc12m/train ${data_dir}/laion_aesthetics_6.0
+    image_transforms: ${data.train_aug}
+    train: true
+    text_embedding_name: ${model.text_embedding_name}
+    vae_embedding_name_mean: ${model.vae_embedding_name_mean}
+    vae_embedding_name_std: ${model.vae_embedding_name_std}
+    repa_embedding_name: null
+    return_image: false
+    return_text: false
+    min_image_size: ${data.img_resolution}
+    coherence_scores: ${model.network.coherence_keys}
+    bin_coherence: false
+    num_bins: 64
+    bin_strategy: "quantile"
+    refine_last_n_bins: 0
+    refine_factor: 1
+    clip_filter_threshold: 0.0
+    aesthetic_threshold: 0.0
+    synthetic_embedding_prob: ${data.synthetic_embedding_prob}
+    lru_size: 20
+
+  val_instance:
+    _partial_: true
+    _target_: miro.data.text_dataset.TextDataset
+    root: ${data_dir}/${data.val_dataset_name}
+    image_transforms: ${data.val_aug}
+    text_embedding_name: ${model.text_embedding_name}
+    vae_embedding_name_mean: ${model.vae_embedding_name_mean}
+    vae_embedding_name_std: ${model.vae_embedding_name_std}
+    return_image: false
+    return_text: false
+    coherence_scores: ${model.network.coherence_keys}
+
+  train_aug:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: torchvision.transforms.CenterCrop
+        size: ${data.img_resolution}
+      - _target_: torchvision.transforms.Normalize
+        mean: 0.5
+        std: 0.5
+
+  val_aug:
+    _target_: torchvision.transforms.Compose
+    transforms:
+      - _target_: torchvision.transforms.ToTensor
+      - _target_: torchvision.transforms.CenterCrop
+        size: ${data.img_resolution}
+      - _target_: torchvision.transforms.Normalize
+        mean: 0.5
+        std: 0.5
+
+  collate_fn:
+    _target_: miro.data.datamodule.dict_collate_and_pad
+    keys_to_pad:
+      - ${model.text_embedding_name}
+    max_length: 256
+
+  datamodule:
+    _target_: miro.data.datamodule.WIDSDataModule
+    train_dataset: ${data.train_instance}
+    val_dataset: ${data.val_instance}
+    full_batch_size: ${data.full_batch_size}
+    num_workers: ${computer.num_workers}
+    collate_fn: ${data.collate_fn}
+    num_nodes: ${computer.num_nodes}
+    num_devices: ${computer.devices}
+    sampler_chunksize: 100000
+    prefetch_factor: ${computer.prefetch_factor}
+    sampler_seed: 0
+    shard_exclusive_workers: true
+    shuffle_buffer_multiplier: 4
+
+# ============================================================
+# Model
+# ============================================================
+model:
+  name: CAD_RIN
+  text_embedding_name: flan_t5_xl
+  vae_embedding_name_mean: vae_embeddings_mean_${data.img_resolution}
+  vae_embedding_name_std: vae_embeddings_std_${data.img_resolution}
+  return_image: false
+  return_text: false
+  channel_wise_normalisation: true
+
+  # Noise schedulers
+  train_noise_scheduler:
+    _target_: miro.models.scheduler.LinearScheduler
+    start: 1
+    end: 0
+    shift: 1.0
+    clip_min: 1e-9
+
+  inference_noise_scheduler:
+    _target_: miro.models.scheduler.LinearScheduler
+    start: 1
+    end: 0
+    shift: 1.0
+    clip_min: 1e-9
+
+  # Data preprocessing
+  data_preprocessing:
+    _target_: miro.models.preprocessing.PrecomputedSDLatentPreconditioning
+    input_key_mean: ${model.vae_embedding_name_mean}
+    input_key_std: ${model.vae_embedding_name_std}
+    output_key_root: x_0
+    vae_sample: true
+    channel_wise_normalisation: ${model.channel_wise_normalisation}
+    model_type: sdxl
+
+  # Conditioning preprocessing
+  cond_preprocessing:
+    _target_: miro.models.preprocessing.PrecomputedTextConditioning
+    input_key: ${model.text_embedding_name}
+    output_key_root: text_tokens
+    drop_labels: false
+
+  # Preconditioning
+  preconditioning:
+    _target_: miro.models.preconditioning.FlowPrecond
+    num_latents: ${model.network.instance.num_latents}
+    latents_dim: ${model.network.instance.latents_dim}
+    do_normalization: noise_driven
+    sigma_data: ${model.sigma_data}
+    do_gradnorm_reweighting: true
+    logvar_channels: 128
+    logvar_mlp_layers: 0
+
+  # Loss
+  loss:
+    _partial_: true
+    _target_: miro.models.loss.FlowMatchingLoss
+    self_cond_rate: 0.9
+    cond_drop_rate: 0.0
+    conditioning_key: ${model.cond_preprocessing.output_key_root}
+    logit_normal_resample: true
+    do_gradnorm_reweighting: true
+
+  # Postprocessing
+  postprocessing:
+    _target_: miro.models.postprocessing.VAEDecoderPostProcessing
+    vae:
+      _target_: diffusers.AutoencoderKL.from_pretrained
+      pretrained_model_name_or_path: "stabilityai/sdxl-vae"
+    channel_wise_normalisation: ${model.channel_wise_normalisation}
+    model_type: sdxl
+
+  # Samplers
+  val_sampler:
+    _partial_: true
+    _target_: miro.models.sampler.flow_euler_sampler
+    num_steps: 50
+    cfg_rate: ${model.cfg_rate}
+
+  test_sampler:
+    _partial_: true
+    _target_: miro.models.sampler.flow_euler_sampler
+    num_steps: 250
+    cfg_rate: ${model.cfg_rate}
+
+  # Unconditional conditioning. Loaded from the bundled
+  # ``miro/assets/flan_t5_xl_uncond.npy`` regardless of cwd / root_dir.
+  uncond_conditioning:
+    _target_: miro.utils.assets.load_uncond_embedding
+
+  # Network
+  network:
+    coherence_keys: []
+    instance:
+      _target_: miro.models.networks.rin.CADRINTextCond
+      data_size: ${data.data_resolution}
+      num_input_channels: 4
+      label_dim: ${data.label_dim}
+      num_cond_tokens: ${data.num_cond_tokens}
+      data_dim: 256
+      num_latents: 128
+      latents_dim: 512
+      num_processing_layers: 2
+      num_blocks: 3
+      patch_size: 2
+      read_write_heads: 8
+      compute_heads: 16
+      data_mlp_multiplier: 4
+      compute_dropout: 0
+      rw_stochastic_depth: 0
+      compute_stochastic_depth: 0
+      num_text_registers: 16
+      coherence_keys: ${model.network.coherence_keys}
+      coherence_dropout: 0.8
+      dropout_strategy: binomial
+
+  # Training parameters
+  ema_decay: 0.9999
+  default_ema_index: 0
+  start_ema_step: 0
+  cfg_rate: 7.0
+  negative_prompts: random_prompt
+  sigma_data: 0.5
+  data_mean: 0.5
+  data_std: 0.5
+  compile: true
+  sampling_dtype: null
+
+  # Optimizer
+  optimizer:
+    optim:
+      _target_: miro.utils.optimizers.Lamb
+      lr: 1e-3
+      betas: [0.9, 0.999]
+      weight_decay: 0.01
+      eps: 1e-8
+      decouple: false
+    exclude_ln_and_biases_from_weight_decay: false
+
+  # LR scheduler
+  lr_scheduler:
+    _partial_: true
+    _target_: miro.utils.lr_scheduler.WarmupCosineDecayLR
+    warmup_steps: 5000
+    total_steps: ${trainer.max_steps}
+
+  # Coherence/guidance values (overridden by experiments)
+  coherence_values: null
+  uncoherence_values: null
+  coherence_keys: null
+
+hydra:
+  run:
+    dir: outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}/${experiment_name}
+  job:
+    chdir: true

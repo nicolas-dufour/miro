@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# Virtualenvs / uv
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.whl
+*.tar.gz
+
+# Model checkpoints (do not commit weights)
+checkpoints/
+checkpoints_ground_truth/
+*.ckpt
+*.safetensors
+*.pt
+*.bin
+
+# Evaluator weights — downloaded by ``pixi run setup-models`` / ``miro-rewards-download``
+eval/geneval/models/*.pth
+eval/rewards/models/*.pth
+
+# Generated samples / scratch
+scripts/sampled_images/
+sampled_images/
+outputs/
+
+# Datasets
+datasets/text_prompt_testbed/flan_t5_xl_embeddings/
+data_cache/
+
+# Logging
+wandb/
+lightning_logs/
+*.log
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Site-specific env (committed: .env.example only)
+.env
+.env.local
+
+# uv lockfile is kept (keep uv.lock committed)

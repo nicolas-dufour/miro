@@ -1,0 +1,80 @@
+# @package _global_
+
+data:
+  train_instance:
+    num_bins: 64
+    bin_coherence: true
+
+model:
+  coherence_values:
+    clip_score_coherence: 1.0
+    aesthetic_score_coherence: 1.0
+    image_reward_score_coherence: 1.0
+    pick_a_score_score_coherence: 1.0
+    hpsv2_score_coherence: 1.0
+    vqa_score_coherence: 1.0
+    sciscore_score_coherence: 1.0
+  uncoherence_values:
+    clip_score_uncoherence: 0.0
+    aesthetic_score_uncoherence: 0.0
+    image_reward_score_uncoherence: 0.0
+    pick_a_score_score_uncoherence: 0.0
+    hpsv2_score_uncoherence: 0.0
+    vqa_score_uncoherence: 0.0
+    sciscore_score_uncoherence: 0.0
+  coherence_keys:
+    - "clip_score_coherence"
+    - "aesthetic_score_coherence"
+    - "image_reward_score_coherence"
+    - "pick_a_score_score_coherence"
+    - "hpsv2_score_coherence"
+    - "vqa_score_coherence"
+    - "sciscore_score_coherence"
+  network:
+    coherence_keys:
+      - "clip_score"
+      - "aesthetic_score"
+      - "image_reward_score"
+      - "pick_a_score_score"
+      - "hpsv2_score"
+      - "vqa_score"
+      - "sciscore_score"
+    instance:
+      data_dim: 512
+      num_latents: 256
+      latents_dim: 1024
+      num_processing_layers: 4
+      num_blocks: 4
+      patch_size: 2
+      read_write_heads: 16
+      compute_heads: 32
+      data_mlp_multiplier: 4
+      latent_mlp_multiplier: 4
+      compute_dropout: 0
+      rw_stochastic_depth: 0
+      compute_stochastic_depth: 0
+      # Legacy CAD architecture (matches checkpoints under
+      # miro/checkpoints_ground_truth/CC12M_256_RIN_small_flow_multi_cad_*)
+      use_cond_rin_block: true
+      concat_cond_token_to_latents: false
+      use_self_conditioning: true
+      # GT trained with coherence_dropout=0.0 (every coherence value contributes
+      # every step). miro's base config defaults to 0.8 which causes the
+      # network to be trained almost entirely without coherence inputs while
+      # inference uses all-1 coherence values, putting sampling far OOD.
+      coherence_dropout: 0.0
+
+  optimizer:
+    optim:
+      lr: 1e-3
+      weight_decay: 0.01
+    exclude_ln_and_biases_from_weight_decay: true
+  lr_scheduler:
+    warmup_steps: 5000
+    rate: 0.8
+
+  loss:
+    cond_drop_rate: 0.0
+
+  cond_preprocessing:
+    drop_labels: false

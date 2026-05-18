@@ -1,0 +1,60 @@
+[project]
+name = "miro-rewards"
+version = "0.1.0"
+description = "Reward-model scoring for Miro generated images (CLIP / aesthetic / HPSv2 / PickScore / ImageReward)"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    # Everything here is pure-PyTorch with no custom CUDA kernels, so a
+    # torch wheel built for cu124 runs straight on H100 (sm_90).
+    "torch==2.5.1",
+    "torchvision==0.20.1",
+    "numpy<2",
+    "pillow",
+    "pandas",
+    "tqdm",
+    "huggingface-hub",
+    "einops",
+    # transformers 4.49+ moved `apply_chunking_to_forward` out of
+    # `transformers.modeling_utils` which ImageReward's BLIP imports.
+    # 4.48+ introduced timm_wrapper which requires timm>=1.0.7 but
+    # ImageReward needs timm 0.6.13. diffusers (pulled by hpsv2) needs
+    # >=4.45 for Dinov2WithRegistersConfig. 4.45-4.47 is the working window.
+    "transformers>=4.45,<4.48",
+    "open-clip-torch==2.26.1",
+    "image-reward==1.5",           # THUDM ImageReward
+    "hpsv2",                       # HPSv2 wrapper
+    "ftfy",
+    "regex",
+    "timm",
+    # diffusers >=0.32 imports Dinov2WithRegistersConfig from transformers,
+    # which only exists in transformers>=4.49 — incompatible with the
+    # transformers pin above.
+    "diffusers<0.32",
+    # Aesthetic predictor (Schuhmann) uses OpenAI's CLIP package, not open_clip
+    "clip @ git+https://github.com/openai/CLIP.git",
+    "pyarrow<19",
+]
+
+[project.scripts]
+miro-rewards-score = "score_images:main"
+miro-rewards-summary = "summary_scores:main"
+miro-rewards-download = "download_aesthetic:main"
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu124" }]
+torchvision = [{ index = "pytorch-cu124" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.hatch.metadata]
+allow-direct-references = true
