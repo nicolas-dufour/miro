@@ -51,7 +51,7 @@ import torch
 from miro import MiroPipeline
 
 pipe = MiroPipeline.from_pretrained("nicolas-dufour/miro")
-pipe = pipe.to("cuda", torch.float16)
+pipe = pipe.to("cuda", torch.bfloat16)
 
 prompt = (
     "Photography closeup portrait of an adorable rusty broken­down steampunk "
@@ -177,7 +177,7 @@ from miro import MiroPipeline
 import torch
 
 clip_only = MiroPipeline.from_pretrained("nicolas-dufour/miro-ablations",
-                                          variant="miro-only-clip").to("cuda", torch.float16)
+                                          variant="miro-only-clip").to("cuda", torch.bfloat16)
 print(clip_only.coherence_keys)
 # ('clip_score',)
 
@@ -202,7 +202,7 @@ results = {}
 for variant in ["miro-only-clip", "miro-only-aesthetic", "miro-only-image-reward",
                  "miro-only-pickscore", "miro-only-hpsv2", "miro-only-vqa", "miro-only-sciscore"]:
     pipe = MiroPipeline.from_pretrained("nicolas-dufour/miro-ablations", variant=variant)
-    pipe = pipe.to("cuda", torch.float16)
+    pipe = pipe.to("cuda", torch.bfloat16)
     results[variant] = pipe(prompt, num_inference_steps=50, guidance_scale=7.0, generator=gen)[0]
 ```
 

@@ -1,6 +1,6 @@
 [project]
 name = "miro-t2i"
-version = "0.1.3"
+version = "0.1.4"
 description = "MIRO: Multi-reward conditioned pretraining for text-to-image diffusion (ICML 2026)"
 readme = "README.md"
 license = { text = "MIT" }

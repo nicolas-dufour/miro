@@ -325,6 +325,7 @@ This checkpoint accompanies the paper
 | **Paper** | <https://arxiv.org/abs/2510.25897> |
 | **Project page** | <https://nicolas-dufour.github.io/miro/> |
 | **Code** | <https://github.com/nicolas-dufour/miro> |
+| **Demo** | [🤗 Space](https://huggingface.co/spaces/nicolas-dufour/miro) (Gradio + ZeroGPU) |
 | **Parameters** | {n_params/1e6:.1f}M |
 | **Resolution** | {config['img_resolution']}×{config['img_resolution']} (SDXL VAE latent space) |
 | **Architecture** | RIN flow-matching backbone, FLAN-T5-XL text conditioning |
@@ -351,7 +352,7 @@ import torch
 from miro import MiroPipeline
 
 pipe = {load_call}
-pipe = pipe.to("cuda", torch.float16)
+pipe = pipe.to("cuda", torch.bfloat16)
 
 prompt = (
     "Photography closeup portrait of an adorable rusty broken­down steampunk "
