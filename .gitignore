@@ -59,4 +59,7 @@ htmlcov/
 .env
 .env.local
 
+# Gradio runtime cache
+.gradio/
+
 # uv lockfile is kept (keep uv.lock committed)

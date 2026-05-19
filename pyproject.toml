@@ -1,6 +1,6 @@
 [project]
 name = "miro-t2i"
-version = "0.1.2"
+version = "0.1.3"
 description = "MIRO: Multi-reward conditioned pretraining for text-to-image diffusion (ICML 2026)"
 readme = "README.md"
 license = { text = "MIT" }
@@ -55,6 +55,9 @@ train = [
     "pandas",
     "scikit-learn",
 ]
+demo = [
+    "gradio>=4.0",
+]
 dev = [
     "pytest>=7",
 ]
@@ -83,6 +86,7 @@ bypass-selection = true
 [tool.hatch.build.targets.wheel.force-include]
 "__init__.py" = "miro/__init__.py"
 "pipeline.py" = "miro/pipeline.py"
+"app.py" = "miro/app.py"
 "models" = "miro/models"
 "utils/__init__.py" = "miro/utils/__init__.py"
 "utils/assets.py" = "miro/utils/assets.py"
@@ -96,12 +100,14 @@ bypass-selection = true
 include = [
     "__init__.py",
     "pipeline.py",
+    "app.py",
     "models/**/*.py",
     "utils/**/*.py",
     "assets/flan_t5_xl_uncond.npy",
     "configs/**",
     "scripts/**.py",
     "tests/**.py",
+    "space/**",
     "README.md",
     "LICENSE",
     "pyproject.toml",

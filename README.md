@@ -76,6 +76,47 @@ pipe = MiroPipeline.from_pretrained("nicolas-dufour/miro-ablations", variant="mi
 
 (See [Available models](#available-models) for the full list of `variant` names.)
 
+### Gradio demo
+
+```bash
+pip install miro-t2i[demo]
+python -m miro.app
+```
+
+The demo spins up a local Gradio UI with the prompt box, sampling controls, seven *positive* and seven *negative* reward sliders (each snapped to `1/64`, matching the training quantisation), 22 example prompts from the testbed, and a `gr.Gallery` output that lets you right-click each generated sample individually plus a download button for the composed 2 × 2 PNG.
+
+The `MIRO_REPO` env var picks the checkpoint (default `nicolas-dufour/miro`); set it to e.g. `nicolas-dufour/miro-ablations` and edit the variant in `miro/app.py` to demo a specialist.
+
+### Deploy on HuggingFace Spaces (ZeroGPU)
+
+The same `app.py` runs unchanged on a HuggingFace **ZeroGPU** Space (free for Pro accounts; GPU is allocated on-demand per inference call). A ready-to-push template lives under [`miro/space/`](miro/space/):
+
+```
+space/
+├── app.py            # thin shim: ``runpy.run_module("miro.app", run_name="__main__")``
+├── requirements.txt  # ``miro-t2i[demo]`` + ``spaces`` + ``torch``
+└── README.md         # YAML frontmatter declaring SDK=gradio, hardware=zero-h200
+```
+
+To deploy:
+
+```bash
+# 1) Create a new Space at huggingface.co/new-space:
+#    - SDK: Gradio
+#    - Hardware: ZeroGPU (H200)
+#    - Repo: nicolas-dufour/miro-demo  (or whatever name)
+
+# 2) Push the template files:
+git clone https://huggingface.co/spaces/nicolas-dufour/miro-demo
+cp miro/space/* miro-demo/
+cd miro-demo
+git add . && git commit -m "Initial MIRO demo" && git push
+```
+
+The Space landing page (`README.md`) carries the Spaces YAML frontmatter (title, emoji, SDK version, hardware target). On first request HF spins up a ZeroGPU slot, runs the `@spaces.GPU(duration=60)`-decorated `generate()` once, and releases the GPU back to the pool.
+
+If `spaces` isn't installed (i.e., running locally), `app.py` falls through to a no-op decorator and uses the local CUDA device directly.
+
 ## Available models
 
 The full 350M-parameter MIRO checkpoint — trained jointly on all seven rewards _and_ on a 50/50 mix of original and synthetic captions — lives at **`nicolas-dufour/miro`**. The fifteen variants (8 ablations + 7 single-reward specialists used as paper baselines) live as subfolders inside **`nicolas-dufour/miro-ablations`** and are loaded with the `variant=` argument.

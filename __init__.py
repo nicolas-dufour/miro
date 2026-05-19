@@ -2,4 +2,4 @@
 from miro.pipeline import MiroPipeline
 
 __all__ = ["MiroPipeline"]
-__version__ = "0.1.2"
+__version__ = "0.1.3"
