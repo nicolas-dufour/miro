@@ -8,6 +8,7 @@
 [![ICML 2026](https://img.shields.io/badge/ICML-2026-blue)](https://icml.cc/)
 [![PyPI](https://img.shields.io/badge/pypi-miro--t2i-3776ab)](https://pypi.org/project/miro-t2i/)
 [![HF Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hub-nicolas--dufour%2Fmiro-orange)](https://huggingface.co/nicolas-dufour/miro)
+[![HF Demo](https://img.shields.io/badge/%F0%9F%A4%97%20Spaces-Demo-yellow)](https://huggingface.co/spaces/nicolas-dufour/miro)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > Nicolas Dufour, Lucas Degeorge, Arijit Ghosh, Vicky Kalogeiton, David Picard. _MIRO: MultI-Reward cOnditioned pretraining improves T2I quality and efficiency_. **ICML 2026**.
